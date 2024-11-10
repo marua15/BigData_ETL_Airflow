@@ -1,0 +1,6 @@
+# To run airflow
+docker-compose up 
+# To stop airflow
+docker-compose down 
+
+
