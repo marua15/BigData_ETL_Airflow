@@ -1,9 +1,9 @@
+
 import streamlit as st
 import psycopg2
 import pandas as pd
 import plotly.express as px 
 
-# Database connection details
 conn = None
 try:
     conn = psycopg2.connect(
@@ -13,11 +13,10 @@ try:
         user="airflow",
         password="airflow"
     )
-    st.success("Connection successful!")
+    st.success("Connexion réussie !")
 except psycopg2.OperationalError as e:
-    st.error(f"OperationalError: {e}")
+    st.error(f"Erreur opérationnelle : {e}")
 
-# Query function
 def query_database(sql_query):
     with conn.cursor() as cur:
         cur.execute(sql_query)
@@ -25,89 +24,86 @@ def query_database(sql_query):
         columns = [desc[0] for desc in cur.description]
     return pd.DataFrame(data, columns=columns)
 
-# Streamlit Dashboard Interface
-st.title("MasterCard vs Visa: Data Insights Dashboard")
+st.title("MasterCard vs Visa : Tableau de bord des insights")
 
-# Sidebar for query selection
-st.sidebar.header("Query Options")
+st.sidebar.header("Options de requêtes")
 
-# Allow user to select table and limit results
-table_name = st.sidebar.text_input("Enter table name", "MVR")
-limit = st.sidebar.number_input("Limit results", min_value=1, max_value=1000, value=100, step=10)
+table_name = st.sidebar.text_input("Entrez le nom de la table", "MVR")
+limit = st.sidebar.number_input("Limite des résultats", min_value=1, max_value=1000, value=100, step=10)
 
-# Dynamic query based on user input
 if conn:
     query = f"SELECT * FROM \"{table_name}\" LIMIT {limit};"
     df = query_database(query)
     
-    # Display the dataframe
-    st.write("Data Preview", df)
+    st.write("Aperçu des données", df)
     
-    # Column selection
-    columns_to_display = st.multiselect("Select columns to display", options=df.columns, default=df.columns)
+    columns_to_display = st.multiselect("Sélectionnez les colonnes à afficher", options=df.columns, default=df.columns)
     filtered_df = df[columns_to_display]
     
-    # Create layout with columns for different sections
     col1, col2 = st.columns(2)
     
     with col1:
-        # Price Insights Section (e.g., Closing Prices)
-        st.header("Price Insights")
-        st.subheader("MasterCard vs Visa: Closing Prices")
+        st.header("Insights sur les prix")
+        st.subheader("MasterCard vs Visa : Prix de clôture")
         fig = px.line(filtered_df, x='Date', y=['Close_M', 'Close_V'], 
-                      labels={'Date': 'Date', 'value': 'Price'}, 
-                      title='Closing Prices for MasterCard and Visa')
+                      labels={'Date': 'Date', 'value': 'Prix'}, 
+                      title='Prix de clôture de MasterCard et Visa')
         st.plotly_chart(fig)
 
-        # Price Change Over Time
-        st.subheader("Price Change")
+        st.subheader("Changement de prix")
         fig_pct_change = px.line(filtered_df, x='Date', y=['Pct_Change_M', 'Pct_Change_V'],
-                                 labels={'Date': 'Date', 'value': 'Percentage Change'},
-                                 title='Percentage Change of Prices Over Time')
+                                 labels={'Date': 'Date', 'value': 'Changement en pourcentage'},
+                                 title='Changement en pourcentage des prix au fil du temps')
         st.plotly_chart(fig_pct_change)
 
-        # Risk & Volatility
-        st.header("Risk and Volatility Insights")
-        st.subheader("Price Volatility Over Time")
+        st.header("Insights sur le risque et la volatilité")
+        st.subheader("Volatilité des prix au fil du temps")
         fig_volatility = px.line(filtered_df, x='Date', y=['Volatility_M', 'Volatility_V'],
-                                 labels={'Date': 'Date', 'value': 'Volatility'},
-                                 title='Price Volatility for MasterCard and Visa')
+                                 labels={'Date': 'Date', 'value': 'Volatilité'},
+                                 title='Volatilité des prix pour MasterCard et Visa')
         st.plotly_chart(fig_volatility)
 
     with col2:
-        # Volume Insights Section
-        st.header("Volume Insights")
-        st.subheader("Transaction Volumes")
+        st.header("Insights sur le volume")
+        st.subheader("Volumes des transactions")
         fig_volumes = px.bar(filtered_df, x='Date', y=['Volume_M', 'Volume_V'],
-                             title="Transaction Volumes for MasterCard and Visa")
+                             title="Volumes des transactions pour MasterCard et Visa")
         st.plotly_chart(fig_volumes)
 
-        # Moving Averages: Price & Volume
-        st.subheader("Moving Averages for Prices and Volumes")
+        st.subheader("Moyennes mobiles des prix et des volumes")
         fig_moving_avg = px.line(filtered_df, x='Date', y=['MA7_Close_M', 'MA7_Close_V', 'MA30_Close_M', 'MA30_Close_V'],
-                                  title='7-Day and 30-Day Moving Averages for Closing Prices')
+                                  title='Moyennes mobiles sur 7 jours et 30 jours des prix de clôture')
         st.plotly_chart(fig_moving_avg)
 
-        # Volume Moving Averages
-        st.subheader("Volume Moving Averages")
+        st.subheader("Moyennes mobiles des volumes")
         fig_volume_ma = px.line(filtered_df, x='Date', y=['Volume_MA7_M', 'Volume_MA7_V'],
-                                title="7-Day Moving Average of Volumes")
+                                title="Moyenne mobile sur 7 jours des volumes")
         st.plotly_chart(fig_volume_ma)
 
-    # Additional Insights Section
-    st.header("Advanced Insights")
-    st.subheader("Volume to Price Ratio")
+    st.header("Insights avancés")
+    st.subheader("Ratio volume / prix")
     fig_vol_price_ratio = px.line(filtered_df, x='Date', y='Volume_Ratio_MV',
-                                  title="Volume to Price Ratio for MasterCard and Visa")
+                                  title="Ratio volume / prix pour MasterCard et Visa")
     st.plotly_chart(fig_vol_price_ratio)
 
-    # Decision-Making Insights
-    st.header("Market Sentiment & Decision Making")
-    st.subheader("Price Change vs Volume for Market Sentiment")
+    st.header("Sentiment du marché et prise de décision")
+    st.subheader("Changement de prix vs volume pour le sentiment du marché")
     fig_sentiment = px.scatter(filtered_df, x='Pct_Change_M', y='Volume_Ratio_MV', color='Date',
-                               labels={'Pct_Change_M': 'Price Change', 'Volume_Ratio_MV': 'Volume to Price Ratio'},
-                               title='Market Sentiment: Price Change vs Volume')
+                               labels={'Pct_Change_M': 'Changement de prix', 'Volume_Ratio_MV': 'Ratio volume / prix'},
+                               title='Sentiment du marché : Changement de prix vs Volume')
     st.plotly_chart(fig_sentiment)
 
+    st.header("Répartition du volume")
+    total_volume_mc = filtered_df['Volume_M'].sum()
+    total_volume_v = filtered_df['Volume_V'].sum()
+
+    pie_data = pd.DataFrame({
+        'Carte': ['MasterCard', 'Visa'],
+        'Volume': [total_volume_mc, total_volume_v]
+    })
+
+    pie_fig = px.pie(pie_data, names='Carte', values='Volume', title='Répartition du volume : MasterCard vs Visa')
+    st.plotly_chart(pie_fig)
+
 else:
-    st.warning("Connection to the database could not be established.")
+    st.warning("Connexion à la base de données impossible.")
