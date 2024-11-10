@@ -27,21 +27,6 @@ dag = DAG(
     catchup=False,
 )
 
-# Callback for failure
-def task_failure_alert(context):
-    logging.error(f"Task {context['task_instance'].task_id} failed!")
-    return
-
-# Callback for success
-def task_success_alert(context):
-    logging.info(f"Task {context['task_instance'].task_id} succeeded!")
-    return
-
-# Callback for retry
-def task_retry_alert(context):
-    logging.warning(f"Task {context['task_instance'].task_id} is being retried.")
-    return
-
 # Define the function to create the table
 def create_table():
     metadata = MetaData()
@@ -137,27 +122,18 @@ def load_data():
 create_table_task = PythonOperator(
     task_id='create_table_task',
     python_callable=create_table,
-    on_failure_callback=task_failure_alert,  
-    on_success_callback=task_success_alert,  
-    on_retry_callback=task_retry_alert, 
     dag=dag,
 )
 
 transform_data_task = PythonOperator(
     task_id='transform_data_task',
     python_callable=transform_data,
-    on_failure_callback=task_failure_alert,  
-    on_success_callback=task_success_alert, 
-    on_retry_callback=task_retry_alert,  
     dag=dag,
 )
 
 load_data_task = PythonOperator(
     task_id='load_data_task',
     python_callable=load_data,
-    on_failure_callback=task_failure_alert,  
-    on_success_callback=task_success_alert, 
-    on_retry_callback=task_retry_alert,  
     dag=dag,
 )
 
